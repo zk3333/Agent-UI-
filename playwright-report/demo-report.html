@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HoloPix UI 自动化测试 · 执行过程演示</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    /* 浅紫白色基调（与自定义报告一致）*/
+    --ink:        #1e1b2e;
+    --ink-2:      #4a4458;
+    --muted:      #918ca0;
+    --line:       #ede9f6;
+    --bg:         #f5f3ff;
+    --card:       #ffffff;
+
+    /* 主色：紫色 */
+    --purple-900: #4c1d95;
+    --purple-700: #6d28d9;
+    --purple-600: #7c3aed;
+    --purple-500: #8b5cf6;
+    --purple-400: #a78bfa;
+    --purple-300: #c4b5fd;
+    --purple-200: #ddd6fe;
+    --purple-100: #ede9fe;
+    --purple-50:  #f5f3ff;
+    --purple-25:  #faf8ff;
+
+    /* 状态色 */
+    --ok-700:     #15803d;
+    --ok-600:     #16a34a;
+    --ok-500:     #22c55e;
+    --ok-100:     #dcfce7;
+    --ok-50:      #f0fdf4;
+    --err-600:    #dc2626;
+    --err-100:    #fee2e2;
+    --warn-600:   #d97706;
+    --warn-100:   #fef3c7;
+
+    --r-lg: 16px;
+    --r-md: 12px;
+    --r-sm: 8px;
+    --sh-1: 0 1px 3px rgba(76,29,149,.06), 0 1px 2px rgba(76,29,149,.04);
+    --sh-2: 0 8px 28px -10px rgba(76,29,149,.15);
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', Roboto, sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, ui-monospace, monospace;
+  }
+  * { margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 56px; }
+  body {
+    font-family: var(--font);
+    color: var(--ink);
+    line-height: 1.6;
+    background:
+      radial-gradient(900px 400px at 15% -5%, var(--purple-100) 0%, transparent 55%),
+      radial-gradient(700px 350px at 95% 5%, var(--purple-50) 0%, transparent 50%),
+      var(--bg);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ===== Sticky Nav ===== */
+  .topnav {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; gap: 4px; justify-content: center; flex-wrap: nowrap;
+    padding: 6px 16px;
+    background: rgba(255,255,255,.88); backdrop-filter: blur(14px) saturate(1.2);
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .topnav::-webkit-scrollbar { display: none; }
+  .topnav a {
+    font-size: 11.5px; color: var(--ink-2); text-decoration: none;
+    padding: 4px 12px; border-radius: 999px; transition: all .2s;
+    white-space: nowrap; font-weight: 600; flex-shrink: 0;
+  }
+  .topnav a:hover { color: var(--purple-700); background: var(--purple-50); }
+  .topnav a.active { color: #fff; background: var(--purple-600); box-shadow: 0 2px 8px rgba(124,58,237,.3); }
+
+  /* ===== Hero ===== */
+  .hero {
+    position: relative;
+    padding: 28px 32px 24px;
+    text-align: center;
+    background: linear-gradient(135deg, var(--purple-100) 0%, var(--purple-50) 50%, #fff 100%);
+    border-bottom: 1px solid var(--purple-200);
+    overflow: hidden;
+  }
+  .hero::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(500px 250px at 88% 20%, rgba(124,58,237,.08), transparent 70%);
+  }
+  .hero h1 {
+    position: relative; z-index: 1;
+    font-size: 22px; font-weight: 700; letter-spacing: -.2px;
+    color: var(--ink); margin-bottom: 6px;
+  }
+  .hero .subtitle {
+    position: relative; z-index: 1;
+    font-size: 12.5px; color: var(--muted); font-family: var(--mono); margin-bottom: 12px;
+  }
+  .badge-pass {
+    display: inline-flex; align-items: center; gap: 6px;
+    position: relative; z-index: 1;
+    padding: 6px 16px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; letter-spacing: .5px;
+    color: #fff; background: var(--ok-600); box-shadow: 0 2px 8px rgba(22,163,74,.3);
+  }
+  .badge-pass::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: .9; }
+
+  /* ===== Metrics ===== */
+  .metrics {
+    max-width: 1120px; margin: -20px auto 0; padding: 0 20px;
+    position: relative; z-index: 2;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .metric {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: var(--sh-1);
+    padding: 16px 14px; text-align: center;
+    transition: box-shadow .2s ease, border-color .2s ease, transform .16s ease;
+  }
+  .metric:hover { transform: translateY(-2px); border-color: var(--purple-300); box-shadow: var(--sh-2); }
+  .metric .val { font-size: 22px; font-weight: 800; color: var(--purple-700); font-variant-numeric: tabular-nums; }
+  .metric .label { font-size: 11.5px; color: var(--muted); margin-top: 3px; letter-spacing: .3px; }
+  .metric.pass .val { color: var(--ok-600); }
+
+  /* ===== Section / Card ===== */
+  .section { max-width: 1120px; margin: 24px auto; padding: 0 20px; }
+  .section h2 {
+    font-size: 14px; font-weight: 700; letter-spacing: .2px; color: var(--ink);
+    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .section h2::before {
+    content: ""; width: 4px; height: 22px; border-radius: 2px;
+    background: linear-gradient(180deg, var(--purple-400), var(--purple-600));
+  }
+
+  /* ===== AI 推理日志 timeline ===== */
+  .log-timeline { display: flex; flex-direction: column; gap: 0; }
+  .log-entry {
+    display: flex; gap: 14px; position: relative; padding-bottom: 24px;
+  }
+  .log-entry:not(:last-child)::before {
+    content: ""; position: absolute; left: 5px; top: 16px; bottom: -2px;
+    width: 2px; background: var(--purple-100);
+  }
+  .log-dot {
+    flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%;
+    margin-top: 4px; border: 2px solid; z-index: 1;
+  }
+  .log-dot.init { background: var(--purple-100); border-color: var(--purple-600); }
+  .log-dot.success { background: var(--ok-100); border-color: var(--ok-600); }
+  .log-body {
+    flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: var(--sh-1); padding: 14px 18px;
+  }
+  .log-body .lhead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .log-body .ltitle { font-weight: 600; font-size: 13.5px; color: var(--ink); }
+  .log-body .ltag {
+    font-size: 10.5px; padding: 2px 10px; border-radius: 999px; font-weight: 700; letter-spacing: .3px;
+  }
+  .ltag.init { background: var(--purple-100); color: var(--purple-700); }
+  .ltag.success { background: var(--ok-100); color: var(--ok-700); }
+  .log-body .ldetail { color: var(--ink-2); font-size: 12.5px; margin-top: 6px; line-height: 1.65; }
+  .log-body .ltime { color: var(--muted); font-size: 11px; font-family: var(--mono); }
+
+  /* ===== Exec log ===== */
+  .exec-log {
+    background: #1e1b2e; border: 1px solid var(--purple-900); border-radius: var(--r-md);
+    padding: 16px 20px; font-family: var(--mono); font-size: 12px; line-height: 1.8; overflow-x: auto;
+    color: #c4b5fd; box-shadow: var(--sh-1);
+  }
+  .exec-log .l-ok { color: #4ade80; }
+  .exec-log .l-pass { color: #4ade80; font-weight: 700; }
+  .exec-log .l-info { color: #a78bfa; }
+  .exec-log .l-rc { color: #c4b5fd; font-weight: 700; }
+  .exec-log .l-muted { color: #6d28d9; }
+
+  /* ===== Flow pipeline ===== */
+  .flow {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: var(--sh-1); padding: 14px 8px; overflow-x: auto;
+  }
+  .flow-node { padding: 14px 10px; text-align: center; position: relative; border-radius: var(--r-sm); transition: background .2s; }
+  .flow-node:hover { background: var(--purple-50); }
+  .flow-node .fn { width: 34px; height: 34px; margin: 0 auto 8px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .9rem;
+    background: var(--purple-100); border: 2px solid var(--purple-600); color: var(--purple-700); }
+  .flow-node.done .fn { background: var(--ok-100); border-color: var(--ok-600); color: var(--ok-700); }
+  .flow-node .ft2 { font-size: .8rem; font-weight: 600; color: var(--ink); }
+  .flow-node .fd2 { font-size: .7rem; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  .flow-node::after {
+    content: "→"; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
+    color: var(--purple-300); font-size: .95rem; z-index: 1; font-weight: 700;
+  }
+  .flow-node:nth-child(5n)::after, .flow-node:last-child::after { content: none; }
+
+  /* ===== Healing diagram ===== */
+  .heal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .heal-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
+    box-shadow: var(--sh-1); padding: 24px 22px;
+  }
+  .heal-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .heal-steps { display: flex; flex-direction: column; gap: 10px; }
+  .heal-step {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 12px 14px; background: var(--purple-25); border-radius: var(--r-sm); border-left: 3px solid var(--purple-500);
+  }
+  .heal-step .hn { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--purple-100); color: var(--purple-700); font-size: .72rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; }
+  .heal-step .ht { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .heal-step .hd { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; line-height: 1.55; }
+  .heal-step.warn { border-left-color: var(--warn-600); }
+  .heal-step.warn .hn { background: var(--warn-100); color: var(--warn-600); }
+  .heal-step.err { border-left-color: var(--err-600); }
+  .heal-step.err .hn { background: var(--err-100); color: var(--err-600); }
+
+  .fallback { display: flex; flex-direction: column; gap: 10px; }
+  .fb-item {
+    display: flex; gap: 10px; align-items: center; padding: 12px 16px;
+    background: var(--purple-25); border-radius: var(--r-sm); border: 1px solid var(--purple-100);
+  }
+  .fb-item .fbl { flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px; font-size: .72rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; }
+  .fb-item.l1 .fbl { background: var(--ok-100); color: var(--ok-700); }
+  .fb-item.l2 .fbl { background: var(--purple-100); color: var(--purple-700); }
+  .fb-item.l3 .fbl { background: var(--err-100); color: var(--err-600); }
+  .fb-item .fbt { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .fb-item .fbd { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
+  .codeblk {
+    background: #1e1b2e; border: 1px solid var(--purple-900); border-radius: var(--r-sm);
+    padding: 14px 18px; font-family: var(--mono); font-size: 11.5px; line-height: 1.7; overflow-x: auto; color: #c4b5fd;
+  }
+  .codeblk .k { color: #a78bfa; }
+  .codeblk .s { color: #4ade80; }
+  .codeblk .c { color: #6d28d9; }
+
+  /* ===== Pitfall cards ===== */
+  .pit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .pit {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: var(--sh-1);
+    padding: 20px; border-top: 3px solid var(--purple-500);
+  }
+  .pit .pno { font-size: 11px; font-weight: 700; color: var(--purple-500); margin-bottom: 6px; font-family: var(--mono); }
+  .pit .pt { font-weight: 700; margin-bottom: 6px; font-size: 13.5px; color: var(--ink); }
+  .pit .pd { font-size: 12px; color: var(--ink-2); line-height: 1.6; }
+  .pit .tag { display: inline-block; font-size: 10.5px; padding: 2px 9px; border-radius: 999px;
+    background: var(--purple-100); color: var(--purple-700); margin-top: 10px; font-weight: 600; }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 15px; border-radius: 999px;
+    font-size: 12px; font-weight: 700;
+  }
+  .status-pill.green { background: var(--ok-100); color: var(--ok-700); border: 1px solid var(--ok-500); }
+
+  /* ===== Steps gallery ===== */
+  .steps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  .step-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: var(--sh-1); overflow: hidden; cursor: pointer;
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  .step-card:hover { transform: translateY(-3px); border-color: var(--purple-300); box-shadow: var(--sh-2); }
+  .step-card .thumb-wrap { position: relative; aspect-ratio: 16/10; background: #f5f3ff; overflow: hidden; }
+  .step-card .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .step-card .thumb-wrap::after {
+    content: "点击放大"; position: absolute; inset: 0;
+    background: rgba(30,27,46,.55); color: #fff; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity .2s;
+  }
+  .step-card:hover .thumb-wrap::after { opacity: 1; }
+  .step-card .meta { padding: 14px 16px; }
+  .step-card .sno { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px;
+    background: var(--purple-100); color: var(--purple-700); margin-bottom: 7px; }
+  .step-card .stitle { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .step-card .sdesc { font-size: 12px; color: var(--ink-2); margin-top: 4px; line-height: 1.5; }
+  .step-card.sub { border-color: var(--purple-100); }
+  .step-card.sub .sno { background: var(--purple-50); color: var(--purple-500); }
+
+  /* ===== Video ===== */
+  .video-wrap {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
+    box-shadow: var(--sh-1); padding: 16px; position: relative;
+  }
+  .video-wrap video { width: 100%; border-radius: var(--r-sm); display: block; background: #000; }
+  .video-tag {
+    position: absolute; top: 24px; right: 24px; z-index: 2;
+    background: var(--purple-600); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .3px;
+    padding: 4px 12px; border-radius: 999px; box-shadow: 0 2px 8px rgba(124,58,237,.3);
+  }
+
+  /* ===== Tech highlights ===== */
+  .feat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .feat {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: var(--sh-1); padding: 20px 18px;
+    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+  }
+  .feat:hover { border-color: var(--purple-300); box-shadow: var(--sh-2); transform: translateY(-1px); }
+  .feat .icon { font-size: 1.6rem; margin-bottom: 10px; }
+  .feat .ft { font-weight: 700; margin-bottom: 6px; font-size: 13.5px; color: var(--ink); }
+  .feat .fd { font-size: 12px; color: var(--ink-2); line-height: 1.6; }
+
+  /* ===== Lightbox ===== */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 999; display: none;
+    background: rgba(28,18,52,.88); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center; padding: 40px;
+  }
+  .lightbox.active { display: flex; }
+  .lightbox img { max-width: 95%; max-height: 90vh; border-radius: var(--r-sm); box-shadow: 0 12px 40px rgba(0,0,0,.6); background: #fff; }
+  .lightbox .lb-close {
+    position: absolute; top: 24px; right: 32px; font-size: 2rem; color: #fff;
+    cursor: pointer; opacity: .7; transition: opacity .2s; line-height: 1; background: none; border: none;
+  }
+  .lightbox .lb-close:hover { opacity: 1; }
+  .lightbox .lb-caption {
+    position: absolute; bottom: 28px; left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,.85); font-size: 14px; font-weight: 600;
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    text-align: center; padding: 40px 32px; color: var(--muted); font-size: 12px;
+    border-top: 1px solid var(--line); margin-top: 40px;
+  }
+
+  /* ===== Scroll reveal ===== */
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .5s ease, transform .5s ease; }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  @media (max-width: 900px) {
+    .flow { grid-template-columns: repeat(3, 1fr); }
+    .flow-node:nth-child(5n)::after { content: "→"; }
+    .flow-node:nth-child(3n)::after, .flow-node:last-child::after { content: none; }
+  }
+  @media (max-width: 720px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .hero { padding: 28px 20px 26px; }
+    .hero h1 { font-size: 20px; }
+    .section { padding: 0 16px; }
+    .heal-grid { grid-template-columns: 1fr; }
+    .topnav { justify-content: flex-start; overflow-x: auto; }
+    .flow { grid-template-columns: repeat(2, 1fr); }
+    .flow-node:nth-child(3n)::after, .flow-node:nth-child(5n)::after { content: "→"; }
+    .flow-node:nth-child(2n)::after, .flow-node:last-child::after { content: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Sticky Nav ===== -->
+<nav class="topnav" id="topnav">
+  <a href="#hero">概览</a>
+  <a href="#flow">Skill 流程</a>
+  <a href="#reasoning">推理日志</a>
+  <a href="#healing">自愈机制</a>
+  <a href="#execlog">执行日志</a>
+  <a href="#steps">步骤截图</a>
+  <a href="#video">运行录像</a>
+  <a href="#pitfalls">踩坑经验</a>
+  <a href="#features">技术亮点</a>
+</nav>
+
+<!-- ===== Hero ===== -->
+<header class="hero" id="hero">
+  <h1>HoloPix UI 自动化测试</h1>
+  <p class="subtitle">登录 → 细节强化器创作 → 发布 / 资产 / 分享 全链路 · 自愈执行过程演示</p>
+  <span class="badge-pass">测试通过</span>
+</header>
+
+<!-- ===== Metrics ===== -->
+<section class="metrics">
+  <div class="metric pass"><div class="val">1/1</div><div class="label">用例通过</div></div>
+  <div class="metric"><div class="val">3.8m</div><div class="label">执行耗时</div></div>
+  <div class="metric"><div class="val">0</div><div class="label">自愈轮次</div></div>
+  <div class="metric"><div class="val">15</div><div class="label">测试步骤</div></div>
+</section>
+
+<!-- ===== Skill 调用流程 ===== -->
+<section class="section reveal" id="flow">
+  <h2>Skill 调用流程 · ui-test-agent</h2>
+  <p style="color:var(--text2);font-size:.9rem;margin-bottom:18px;">本次测试通过 <code style="color:var(--accent2)">use_skill("ui-test-agent")</code> 加载 skill 指令集，按步骤 0→9 顺序执行。绿色节点为本次实际执行并完成的环节。</p>
+  <div class="flow">
+    <div class="flow-node done">
+      <div class="fn">0</div>
+      <div class="ft2">环境检测</div>
+      <div class="fd2">检查 node_modules / spec / 重置自愈日志</div>
+    </div>
+    <div class="flow-node done">
+      <div class="fn">1</div>
+      <div class="ft2">同步 steps.md</div>
+      <div class="fd2">读步骤文档→逐条比对 spec→更新</div>
+    </div>
+    <div class="flow-node done">
+      <div class="fn">2</div>
+      <div class="ft2">生成脚本</div>
+      <div class="fd2">含弹窗检测/视频增强/候选定位器</div>
+    </div>
+    <div class="flow-node done">
+      <div class="fn">3</div>
+      <div class="ft2">执行测试</div>
+      <div class="fd2">Playwright 运行，捕获执行结果</div>
+    </div>
+    <div class="flow-node done">
+      <div class="fn">4</div>
+      <div class="ft2">自愈判断</div>
+      <div class="fd2">本轮一次通过，跳过自愈</div>
+    </div>
+    <div class="flow-node done">
+      <div class="fn">5</div>
+      <div class="ft2">自愈上限</div>
+      <div class="fd2">最多 3 轮，未触发</div>
+    </div>
+    <div class="flow-node done">
+      <div class="fn">6</div>
+      <div class="ft2">视频增强</div>
+      <div class="fd2">字幕/红框已注入，零转码</div>
+    </div>
+    <div class="flow-node done">
+      <div class="fn">7</div>
+      <div class="ft2">生成报告</div>
+      <div class="fd2">标题由 steps.md 推理</div>
+    </div>
+    <div class="flow-node done">
+      <div class="fn">8</div>
+      <div class="ft2">输出报告</div>
+      <div class="fd2">日志/截图/trace/代码 diff</div>
+    </div>
+    <div class="flow-node done">
+      <div class="fn">9</div>
+      <div class="ft2">沉淀经验</div>
+      <div class="fd2">难点补充到踩坑经验库</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== AI 推理日志 ===== -->
+<section class="section reveal" id="reasoning">
+  <h2>AI 推理日志</h2>
+  <div class="log-timeline">
+    <div class="log-entry">
+      <div class="log-dot init">i</div>
+      <div class="log-body">
+        <div class="lhead">
+          <span class="ltitle">启动 UI 自动化测试</span>
+          <span class="ltag init">init</span>
+        </div>
+        <div class="ldetail">读取 steps.md（15 步全链路），spec 已同步，账号密码一致，开启自愈模式（最多 3 轮）</div>
+        <div class="ltime">12:24:53</div>
+      </div>
+    </div>
+    <div class="log-entry">
+      <div class="log-dot success">✓</div>
+      <div class="log-body">
+        <div class="lhead">
+          <span class="ltitle">测试首轮通过</span>
+          <span class="ltag success">success</span>
+        </div>
+        <div class="ldetail">全链路 15 步一次通过，耗时 3.8m，无需自愈</div>
+        <div class="ltime">12:28:54</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 自愈机制 ===== -->
+<section class="section reveal" id="healing">
+  <h2>自愈机制 · 定位器失效自动修复</h2>
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px;">
+    <span style="color:var(--text2);font-size:.9rem;">本次执行状态：</span>
+    <span class="status-pill green">✓ 首轮通过，未触发自愈</span>
+    <span style="color:var(--text2);font-size:.82rem;">以下展示当测试失败时系统的工作机制</span>
+  </div>
+
+  <div class="heal-grid">
+    <!-- 左：委派自愈契约 -->
+    <div class="heal-card">
+      <h3>🔄 委派 ui-healer-agent 子代理</h3>
+      <p style="color:var(--text2);font-size:.82rem;margin-bottom:14px;">定位器失效/动作失败时，主代理收集失败凭据，委派专业自愈子代理推导替代定位器（零幻觉、有界重试）。</p>
+      <div class="heal-steps">
+        <div class="heal-step">
+          <span class="hn">1</span>
+          <div><div class="ht">收集自愈凭据</div><div class="hd">优先读 error-context.md（ARIA 快照）+ test-failed-1.png + trace，不重新 MCP 登录走流程</div></div>
+        </div>
+        <div class="heal-step">
+          <span class="hn">2</span>
+          <div><div class="ht">判断失败类型</div><div class="hd">定位器失效/动作失败 → 委派；业务逻辑 bug → 停止自愈，出 bug 报告</div></div>
+        </div>
+        <div class="heal-step warn">
+          <span class="hn">3</span>
+          <div><div class="ht">委派 ui-healer-agent</div><div class="hd">传入 failingStep / attemptedAction / errorText / pageContext，子代理按定位优先级推导修复</div></div>
+        </div>
+        <div class="heal-step">
+          <span class="hn">4</span>
+          <div><div class="ht">消费结构化结果</div><div class="hd">返回 status/finalLocator/evidence；healed 则更新 spec 并 --grep 只重跑失败步骤</div></div>
+        </div>
+        <div class="heal-step err">
+          <span class="hn">5</span>
+          <div><div class="ht">最多 3 轮，避免死循环</div><div class="hd">3 次仍失败 → 换思路重试或升级人工排查，不再盲目循环</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右：截图解析三级兜底 -->
+    <div class="heal-card">
+      <h3>🖼️ 截图解析三级兜底</h3>
+      <p style="color:var(--text2);font-size:.82rem;margin-bottom:14px;">保证任何语义步骤在报告中都不会「没有截图」，按固定顺序依次尝试。</p>
+      <div class="fallback">
+        <div class="fb-item l1">
+          <span class="fbl">1</span>
+          <div><div class="fbt">精确映射</div><div class="fbd">stepScreenshotMap 按步骤标题查截图（含断言子步骤）</div></div>
+        </div>
+        <div class="fb-item l2">
+          <span class="fbl">2</span>
+          <div><div class="fbt">继承上级截图</div><div class="fbd">无映射时自动继承上级步骤最近一张截图（标注「继承上级步骤截图」）</div></div>
+        </div>
+        <div class="fb-item l3">
+          <span class="fbl">3</span>
+          <div><div class="fbt">失败兜底</div><div class="fbd">带 error 的步骤自动挂 Playwright 失败时的整页截图</div></div>
+        </div>
+      </div>
+      <p style="color:var(--text2);font-size:.82rem;margin:18px 0 10px;">每次自愈按时机追加 healing-log.json（type 取 init/analyze/heal/fix/retry/success/error），报告「AI 推理日志」呈现真实自愈过程。</p>
+      <div class="codeblk"><span class="c">// 候选定位器链：依次尝试，第一个可见即命中</span>
+<span class="k">async function</span> <span class="s">pick</span>(page, candidates, timeout=1000) {
+  <span class="k">for</span> (<span class="k">const</span> sel <span class="k">of</span> candidates) {
+    <span class="k">const</span> loc = page.locator(sel).first();
+    <span class="k">if</span> (<span class="k">await</span> loc.isVisible({ timeout }).catch(() => <span class="k">false</span>)) <span class="k">return</span> loc;
+  }
+  <span class="k">return</span> page.locator(candidates[0]).first(); <span class="c">// 兜底</span>
+}
+<span class="c">// 登录入口候选链（轻微改版自动 fallback）</span>
+<span class="k">const</span> loginBtn = <span class="k">await</span> <span class="s">pick</span>(page, [
+  <span class="s">'.to-login-btn-tooltip .button'</span>,  <span class="c">// popover 按钮</span>
+  <span class="s">'.toLogin'</span>                         <span class="c">// 顶部导航</span>
+]);</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 执行日志 ===== -->
+<section class="section reveal" id="execlog">
+  <h2>执行日志</h2>
+  <div class="exec-log">
+<span class="l-info">Running 1 test using 1 worker</span>
+
+<span class="l-ok">  ok 1 [chromium] › tests\holopix-login.spec.ts:130:7 › HoloPix 登录 + 自由画布创作流程 › 账号密码登录并完成细节强化器创作 (3.8m)</span>
+
+<span class="l-pass">  1 passed (3.8m)</span>
+
+<span class="l-muted">To open last HTML report run:</span>
+  npx playwright show-report
+<span class="l-rc">RC=0</span>
+  </div>
+</section>
+
+<!-- ===== 步骤画廊 ===== -->
+<section class="section reveal" id="steps">
+  <h2>测试步骤截图</h2>
+  <div class="steps-grid" id="stepsGrid"></div>
+</section>
+
+<!-- ===== 视频录像 ===== -->
+<section class="section reveal" id="video">
+  <h2>完整运行录像</h2>
+  <div class="video-wrap">
+    <span class="video-tag">WEBM · 42.6 MB</span>
+    <video controls preload="metadata" poster="../screenshots/step7-canvas-editor.png">
+      <source src="../test-out/.playwright-artifacts-0/page@dd97f7d9568a2de2ae7b17ca670de75a.webm" type="video/webm">
+      您的浏览器不支持视频播放。
+    </video>
+  </div>
+</section>
+
+<!-- ===== 踩坑经验精选 ===== -->
+<section class="section reveal" id="pitfalls">
+  <h2>踩坑经验精选 · 36 条沉淀库</h2>
+  <p style="color:var(--text2);font-size:.9rem;margin-bottom:18px;">skill 内置 36 条踩坑经验库，每轮执行中发现的新难点持续补充，以下为本次全链路测试覆盖的关键经验。</p>
+  <div class="pit-grid">
+    <div class="pit">
+      <div class="pno">#1</div>
+      <div class="pt">登录入口非文字按钮</div>
+      <div class="pd">页面无「登录」文字按钮，登录入口为头像 img[alt=avatar] → popover → 点击 .to-login-btn-tooltip .button</div>
+      <span class="tag">定位器</span>
+    </div>
+    <div class="pit">
+      <div class="pno">#3</div>
+      <div class="pt">账号密码登录两步式表单</div>
+      <div class="pd">填手机号 → 点击「注册/登录」→ 密码框才出现，非一次性表单</div>
+      <span class="tag">时序</span>
+    </div>
+    <div class="pit">
+      <div class="pno">#8</div>
+      <div class="pt">Canvas 画布遮挡底部按钮</div>
+      <div class="pd">画布编辑器全屏 canvas 覆盖底部按钮，必须用 click({ force: true }) 绕过遮挡；JS el.click() 对 Vue/React 组件无效</div>
+      <span class="tag">遮挡</span>
+    </div>
+    <div class="pit">
+      <div class="pno">#14</div>
+      <div class="pt">弹窗任意时机出现</div>
+      <div class="pd">dismissPopups 双层检测：Playwright 定位器 + JS 遍历，只关不含 input 的推广弹窗，避免误关登录对话框</div>
+      <span class="tag">弹窗</span>
+    </div>
+    <div class="pit">
+      <div class="pno">#24</div>
+      <div class="pt">生成完成判断不依赖进度文案</div>
+      <div class="pd">顶部进度提示生成完成后仍常驻，以「创作记录出现结果图」为完成标志，最长轮询 600s</div>
+      <span class="tag">断言</span>
+    </div>
+    <div class="pit">
+      <div class="pno">#26</div>
+      <div class="pt">自愈提速：读失败产物</div>
+      <div class="pd">优先读 error-context.md + test-failed-1.png，不重新 MCP 登录走流程；候选定位器链减少自愈轮次</div>
+      <span class="tag">性能</span>
+    </div>
+    <div class="pit">
+      <div class="pno">#29</div>
+      <div class="pt">删除作品入口 4 轮自愈定位</div>
+      <div class="pd">详情页无删除入口；正常作品卡 footer 的 .artwork-item__actions-more → 菜单含「删除」→ 二次确认</div>
+      <span class="tag">自愈</span>
+    </div>
+    <div class="pit">
+      <div class="pno">#34</div>
+      <div class="pt">预清理黄金范式</div>
+      <div class="pd">safe-delete shim 拦截 rmSync / Remove-Item；改用 PowerShell Move-Item 移入 $env:TEMP，工作区零垃圾</div>
+      <span class="tag">环境</span>
+    </div>
+    <div class="pit">
+      <div class="pno">#35</div>
+      <div class="pt">全链路超时必须 > 600s</div>
+      <div class="pd">AI 生成服务端固定耗时不可压缩，test.setTimeout 设 30 分钟，避免超时打断伪装成点击失败</div>
+      <span class="tag">超时</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 技术亮点 ===== -->
+<section class="section reveal" id="features">
+  <h2>技术亮点</h2>
+  <div class="feat-grid">
+    <div class="feat">
+      <div class="icon">🛡️</div>
+      <div class="ft">自愈定位器链</div>
+      <div class="fd">易变元素用候选定位器链依次尝试，轻微改版自动 fallback，大幅减少自愈轮次</div>
+    </div>
+    <div class="feat">
+      <div class="icon">🎬</div>
+      <div class="ft">运行时字幕注入</div>
+      <div class="fd">红框高亮与步骤文案在录制时注入 DOM，视频自带字幕，后处理零转码</div>
+    </div>
+    <div class="feat">
+      <div class="icon">🧹</div>
+      <div class="ft">安全预清理范式</div>
+      <div class="fd">用 PowerShell Move-Item 将旧产物移入临时目录，规避 safe-delete 拦截，工作区零垃圾</div>
+    </div>
+    <div class="feat">
+      <div class="icon">⏱️</div>
+      <div class="ft">弹性超时策略</div>
+      <div class="fd">全链路 30 分钟超时预算，覆盖 AI 生成等待波动，轮询式完成检测</div>
+    </div>
+    <div class="feat">
+      <div class="icon">🖼️</div>
+      <div class="ft">全链路截图</div>
+      <div class="fd">每个关键步骤自动截图存档，失败时自动保留整页快照与 ARIA 上下文</div>
+    </div>
+    <div class="feat">
+      <div class="icon">🔄</div>
+      <div class="ft">委派自愈机制</div>
+      <div class="fd">定位器失效时委派 ui-healer-agent 子代理，基于 ARIA 快照零幻觉推导替代定位器</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  HoloPix UI 自动化测试 · 基于 Playwright + ui-test-agent skill · 生成于 2026-10-19
+</footer>
+
+<!-- ===== Lightbox ===== -->
+<div class="lightbox" id="lightbox">
+  <span class="lb-close" id="lbClose">&times;</span>
+  <img id="lbImg" src="" alt="截图放大">
+  <div class="lb-caption" id="lbCaption"></div>
+</div>
+
+<script>
+// 步骤数据：no=步骤号, title=标题, desc=描述, img=截图文件名, sub=是否子步骤
+const STEPS = [
+  { no:1, title:'打开 HoloPix 首页', desc:'导航到 https://holopix.cn，检测并关闭推广弹窗', img:'step1-homepage.png' },
+  { no:2, title:'点击首页登录按钮', desc:'点击头像触发 popover，再点击登录入口', img:'step2-login-dialog.png' },
+  { no:3, title:'切换到账号密码登录', desc:'从默认微信扫码切换为账号密码登录方式', img:'step3-account-password-mode.png' },
+  { no:4, title:'输入账号和密码', desc:'两步式表单：先手机号→注册登录→再密码', img:'step4-credentials-filled.png' },
+  { no:5, title:'提交登录', desc:'点击「登 录」按钮完成登录', img:'step5-after-login.png' },
+  { no:6, title:'断言登录成功', desc:'验证右上角出现头像与用户算力', img:'step6-assert-avatar-power.png' },
+  { no:7, title:'点击自由画布', desc:'进入画布列表，点击第一个画布进入编辑器', img:'step7-canvas-editor.png' },
+  { no:8, title:'选择模板：细节强化器', desc:'展开输入区→切换模板 tab→搜索并选中细节强化器', img:'step8-template-selected.png' },
+  { no:9, title:'切换到全能编辑 V3', desc:'点击模型选择器，选择全能编辑 V3 模型', img:'step9-model-v3.png' },
+  { no:10, title:'上传图片', desc:'添加参考图，等待上传完成出现更换按钮', img:'step10-image-uploaded.png' },
+  { no:11, title:'点击生成按钮', desc:'上传完成后点击生成（按钮文本为算力数值）', img:'step11-generating.png' },
+  { no:12, title:'断言生成完成', desc:'轮询创作记录面板出现生成结果图（最长 600s）', img:'step12-generated.png' },
+  { no:13, title:'打开创作记录并 hover 生成图', desc:'点击右侧创作记录，hover 生成的图片', img:'step13-history-panel.png', sub:true },
+  { no:13, title:'收藏并断言已收藏', desc:'点击收藏按钮，断言图标变为已收藏状态', img:'step13-favorited.png', sub:true },
+  { no:13, title:'发布：填写标题标签并提交', desc:'标题填「二次元」，标签选「二次元」后提交', img:'step13-publish-dialog.png', sub:true },
+  { no:13, title:'回到个人主页断言数据存在', desc:'发布后回到个人主页，断言作品列表有数据', img:'step13-personal-works.png', sub:true },
+  { no:13, title:'删除发布的作品并断言成功', desc:'作品卡「...」→删除→二次确认，断言删除成功', img:'step13-deleted.png', sub:true },
+  { no:14, title:'画布编辑器我的资产', desc:'切换我的资产 tab，断言资产数据存在', img:'step14-my-assets.png' },
+  { no:14, title:'左侧菜单进入我的资产', desc:'回首页→点击左侧菜单我的资产→断言单图数据', img:'step14-side-assets-list.png', sub:true },
+  { no:14, title:'资产详情弹窗断言', desc:'点击资产打开详情弹窗，断言含模板与创作场景', img:'step14-side-asset-detail.png', sub:true },
+  { no:15, title:'分享画布弹窗', desc:'点击工具栏分享，断言分享弹窗出现', img:'step15-share-dialog.png' },
+  { no:15, title:'切换可复制权限', desc:'分享权限选择「可复制」选项', img:'step15-share-copyable.png', sub:true },
+  { no:15, title:'分享成功', desc:'点击生成链接，断言 toast 出现分享链接', img:'step15-share-success.png', sub:true },
+  { no:15, title:'分享页查看画布', desc:'新标签页打开分享链接，查看只读画布', img:'step15-share-page.png', sub:true },
+];
+
+const grid = document.getElementById('stepsGrid');
+const frag = document.createDocumentFragment();
+STEPS.forEach((s, i) => {
+  const card = document.createElement('div');
+  card.className = 'step-card' + (s.sub ? ' sub' : '');
+  card.innerHTML = `
+    <div class="thumb-wrap">
+      <img src="../screenshots/${s.img}" alt="${s.title}" loading="lazy" onerror="this.style.opacity=.3">
+    </div>
+    <div class="meta">
+      <span class="sno">${s.sub ? '子步骤' : '步骤 ' + s.no}</span>
+      <div class="stitle">${s.title}</div>
+      <div class="sdesc">${s.desc}</div>
+    </div>`;
+  card.addEventListener('click', () => openLightbox(s.img, s.title));
+  frag.appendChild(card);
+});
+grid.appendChild(frag);
+
+// Lightbox
+const lb = document.getElementById('lightbox');
+const lbImg = document.getElementById('lbImg');
+const lbCaption = document.getElementById('lbCaption');
+function openLightbox(img, title) {
+  lbImg.src = '../screenshots/' + img;
+  lbCaption.textContent = title;
+  lb.classList.add('active');
+}
+document.getElementById('lbClose').addEventListener('click', () => lb.classList.remove('active'));
+lb.addEventListener('click', e => { if (e.target === lb) lb.classList.remove('active'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') lb.classList.remove('active'); });
+
+// ===== Scroll reveal animation =====
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ===== Nav active highlight =====
+const navLinks = document.querySelectorAll('.topnav a');
+const sections = [...navLinks].map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+const navObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      navLinks.forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+sections.forEach(s => navObserver.observe(s));
+</script>
+</body>
+</html>

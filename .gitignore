@@ -1,0 +1,38 @@
+# 依赖
+node_modules/
+
+# Playwright 运行产物（视频录像 500MB+，每次运行重新生成）
+test-out/
+
+# Playwright 报告数据（含 zip/trace 附件，体积大）
+playwright-report/data/
+playwright-report/.video-cache/
+playwright-report/.poster-frame.png
+playwright-report/.full-run.webm
+playwright-report/.concat-list.txt
+
+# 运行日志
+run.log
+report-gen.log
+
+# 步骤时间表（运行产物）
+data/step-timings.json
+
+# 自愈日志（每次运行重置，不提交）
+data/healing-log.json
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# CodeBuddy 工作区数据（plans 等本地配置，不提交）
+.codebuddy/
+
+# Playwright MCP 临时快照/日志
+.playwright-mcp/
+
+# Playwright trace 目录（体积大，每次运行重新生成）
+playwright-report/trace/
+
+# 原生报告 index.html（内嵌 base64 数据，体积大，由 generate-report.js 重新生成）
+playwright-report/index.html

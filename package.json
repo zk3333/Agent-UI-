@@ -1,0 +1,20 @@
+{
+  "name": "ui-test-holopix-login",
+  "version": "1.0.0",
+  "description": "HoloPix 登录流程 UI 自动化测试（自愈）",
+  "scripts": {
+    "test": "npx playwright test && node src/enhance-video.js && node src/generate-report.js",
+    "test:headed": "npx playwright test --headed && node src/enhance-video.js && node src/generate-report.js",
+    "test:debug": "npx playwright test --debug",
+    "report": "node src/generate-report.js",
+    "enhance-video": "node src/enhance-video.js",
+    "save-prompt": "node src/append-prompt.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.3.0"
+  }
+}
